@@ -143,15 +143,15 @@ func writeMessage(conn net.Conn, msg string) error {
 	}
 	// SHOULD do a single write on TCP (RFC 7766, section 8).
 	// MUST do a single write on UDP.
-	_, err := conn.Write(buf)
-	if err != nil && ok {
+	if ok {
 		if addr := conn.RemoteAddr(); addr != nil {
-			_, err2 := pc.WriteTo(buf, addr)
-			if err2 == nil {
+			_, err := pc.WriteTo(buf, addr)
+			if err == nil {
 				return nil
 			}
 		}
 	}
+	_, err := conn.Write(buf)
 	return err
 }
 
