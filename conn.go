@@ -131,26 +131,23 @@ func (c *dnsConn) childContext() (context.Context, context.CancelFunc) {
 }
 
 func writeMessage(conn net.Conn, msg string) error {
-	var buf []byte
-	pc, ok := conn.(net.PacketConn)
-	if ok {
-		buf = []byte(msg)
-	} else {
-		buf = make([]byte, len(msg)+2)
-		buf[0] = byte(len(msg) >> 8)
-		buf[1] = byte(len(msg))
-		copy(buf[2:], msg)
-	}
-	// SHOULD do a single write on TCP (RFC 7766, section 8).
-	// MUST do a single write on UDP.
-	if ok {
+	if pc, ok := conn.(net.PacketConn); ok {
+		// MUST do a single write on UDP.
 		if addr := conn.RemoteAddr(); addr != nil {
-			_, err := pc.WriteTo(buf, addr)
+			_, err := pc.WriteTo([]byte(msg), addr)
 			if err == nil {
 				return nil
 			}
 		}
+		_, err := conn.Write([]byte(msg))
+		return err
 	}
+
+	buf := make([]byte, len(msg)+2)
+	buf[0] = byte(len(msg) >> 8)
+	buf[1] = byte(len(msg))
+	copy(buf[2:], msg)
+	// SHOULD do a single write on TCP (RFC 7766, section 8).
 	_, err := conn.Write(buf)
 	return err
 }
